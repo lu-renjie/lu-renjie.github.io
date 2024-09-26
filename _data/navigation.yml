@@ -11,7 +11,7 @@ header:
       zh-CN   : *ZH_HANS
       zh-SG   : *ZH_HANS
       # @end locale config
-    url: /index.html
+    url: /blog
 
   - titles:
       # @start locale config
@@ -26,17 +26,3 @@ header:
       zh-SG   : *ZH_HANS
       # @end locale config
     url: /archive.html
-
-  - titles:
-      # @start locale config
-      en      : &EN       About
-      en-GB   : *EN
-      en-US   : *EN
-      en-CA   : *EN
-      en-AU   : *EN
-      zh-Hans : &ZH_HANS  关于
-      zh      : *ZH_HANS
-      zh-CN   : *ZH_HANS
-      zh-SG   : *ZH_HANS
-      # @end locale config
-    url: /about.html
