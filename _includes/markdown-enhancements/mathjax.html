@@ -5,7 +5,7 @@
   source0=site.mathjax_autoNumber source1=page.mathjax_autoNumber -%}
 {%- assign _mathjax_autoNumber = __return -%}
 
-<script type="text/x-mathjax-config">
+<!-- <script type="text/x-mathjax-config">
 	var _config = { tex2jax: {
 		inlineMath: [['$','$'], ['\\(','\\)']]
 	}};
@@ -13,5 +13,18 @@
 		_config.TeX = { equationNumbers: { autoNumber: "all" } };
 	{%- endif -%}
 	MathJax.Hub.Config(_config);
+</script> -->
+<script>
+	MathJax = {
+		tex: {
+		  inlineMath: [['$', '$'], ['\\(', '\\)']] // 支持 $...$ 和 \(...\) 作为行内公式分隔符
+		},
+		svg: {
+		  fontCache: 'global' // 使用全局字体缓存
+		}
+	};
+	{%- if _mathjax_autoNumber == true -%}
+		MathJax.tex.tags =  "all";
+	{%- endif -%}
 </script>
 <script type="text/javascript" src="{{ _sources.mathjax }}" async></script>
