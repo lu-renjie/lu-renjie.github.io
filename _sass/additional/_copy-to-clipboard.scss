@@ -157,22 +157,22 @@
 }
 
 /*styles related to snippet copy to clipboard, borrowed from https://clipboardjs.com/assets/styles/main.css*/
-.highlight {
+.copyable {
 	position: relative;
 	overflow: visible
 }
 
-.highlight .btn {
+.copyable .btn {
 	-webkit-transition: opacity .3s ease-in-out;
 	-o-transition: opacity .3s ease-in-out;
 	transition: opacity .3s ease-in-out;
 	opacity: 0;
 	padding: 2px 6px;
 	position: absolute;
-	right: 18px;
+	right: 4px;
 	top: 4px
 }
 
-.highlight:hover .btn, .highlight .btn:focus {
+.copyable:hover .btn, .copyable .btn:focus {
 	opacity: 1
 }

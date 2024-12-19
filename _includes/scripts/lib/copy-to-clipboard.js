@@ -1,13 +1,15 @@
 (function() {
 	var snippets = document.querySelectorAll('pre');
 	[].forEach.call(snippets, function(snippet) {
-		// if (snippet.closest('.highlight') !== null) {
+		// if (snippet.closest('.copyable') !== null) {
 		// 	snippet.firstChild.insertAdjacentHTML('beforebegin', '<button class="btn" data-clipboard-snippet><i class="far fa-copy"></i></button>');
 		// }
-		if (snippet.firstChild) {
-			snippet.firstChild.insertAdjacentHTML('beforebegin', '<button class="btn" data-clipboard-snippet><i class="far fa-copy"></i></button>');
-			snippet.style.overflow = 'scroll';
-		}
+		snippet.parentNode.insertAdjacentHTML('beforebegin', '<button class="btn" data-clipboard-snippet><i class="far fa-copy"></i></button>');
+		snippet.style.overflow = 'scroll';
+
+		target = snippet.parentNode.parentNode;
+		var wrapperHTML = '<div class="copyable" markdown="1">' + target.outerHTML + '</div>';
+		target.outerHTML = wrapperHTML;
 	});
 	var clipboardSnippets = new ClipboardJS('[data-clipboard-snippet]', {
 		target: function(trigger) {
@@ -27,7 +29,7 @@
 		btns[i].addEventListener('mouseleave', clearTooltip);
 		btns[i].addEventListener('blur', clearTooltip);
 		btns[i].addEventListener('mouseenter', function(e) {
-			showTooltip(e.currentTarget, "copy")
+			showTooltip(e.currentTarget, "copy to clipboard")
 		}, false);
 	}
 
