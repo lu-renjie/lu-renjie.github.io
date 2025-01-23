@@ -53,8 +53,10 @@ sources:
     font_awesome: 'https://cdn.bootcdn.net/ajax/libs/font-awesome/5.15.1/css/all.css'
     leancloud_js_sdk: '//cdn.jsdelivr.net/npm/leancloud-storage@3.13.2/dist/av-min.js'
     gitalk:
-      js: 'https://cdn.bootcss.com/gitalk/1.7.2/gitalk.min.js'
-      css: 'https://cdn.bootcss.com/gitalk/1.7.2/gitalk.min.css'
+      # js: 'https://cdn.bootcss.com/gitalk/1.7.2/gitalk.min.js'
+      # css: 'https://cdn.bootcss.com/gitalk/1.7.2/gitalk.min.css'
+      js: '/assets/third-party/gitalk1.7.2/gitalk.min.js'
+      css: '/assets/third-party/gitalk1.7.2/gitalk.min.css'
     valine: 'https://unpkg.com/valine/dist/Valine.min.js' # bootcdn not available
     clipboard: 'https://cdn.jsdelivr.net/npm/clipboard@2/dist/clipboard.min.js'
   unpkg:
