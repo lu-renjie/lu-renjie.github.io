@@ -6,3 +6,8 @@ lurenjie's blog.
 
 
 定义通过 **_粗体加斜体_** 给出。
+
+本地运行：
+```bash
+bundle exec jekyll serve
+```
