@@ -43,14 +43,15 @@ $footer-text-color: $text-color-3;
 $footer-background: $main-color-3;
 
 // link color
-$link-color-blue:     #4286f4;
+$link-color-blue:     #0957D1;
 
 // border and shadow colors
 $border-color:     mix(#000, $background-color, 20%);
 $border-color-l:   mix(#000, $background-color, 10%);
 $decorate-color:   rgba(#000, .1);
 $mask-color:       rgba(#000, .9);
-$select-color:     rgba($main-color-1, .5);
+// $select-color:     rgba($main-color-1, .5);
+$select-color:     rgba(#4286f4c2, .5);
 
 // function colors
 $green:           #52c41a;

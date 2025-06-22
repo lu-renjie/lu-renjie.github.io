@@ -218,4 +218,8 @@
       font-weight: map-get($base, font-weight-bold);
     }
   }
+  a {
+    font-weight: map-get($base, font-weight);
+    @include link-colors($link-color-blue, $link-color-blue);  // 文章内设置的link颜色，悬浮颜色都是蓝色
+  }
 }
