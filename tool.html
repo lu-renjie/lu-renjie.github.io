@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV神经网络训练器</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.1/dist/chart.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .section {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 15px;
+            background-color: #f9f9f9;
+        }
+        h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
+            background-color: #45a049;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .column-selector {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .column-group {
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .column-group h3 {
+            margin-top: 0;
+        }
+        .column-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .column-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px;
+            background-color: #f0f0f0;
+            border-radius: 3px;
+        }
+        .data-preview {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        .progress-container {
+            margin-top: 10px;
+        }
+        progress {
+            width: 100%;
+            height: 20px;
+        }
+        .status {
+            margin-top: 5px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CSV神经网络训练器</h1>
+        
+        <div class="section">
+            <h2>1. 上传CSV文件</h2>
+            <input type="file" id="csvFile" accept=".csv">
+            <div id="fileInfo"></div>
+            
+            <div id="dataPreview" class="data-preview" style="display: none;">
+                <h3>数据预览 (前10行)</h3>
+                <table id="previewTable">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="section" id="columnSelection" style="display: none;">
+            <h2>2. 选择输入和输出列</h2>
+            <div id="columnSelector" class="column-selector">
+                <div class="column-group">
+                    <h3>输入列 (特征)</h3>
+                    <div id="inputColumns" class="column-options"></div>
+                </div>
+                <div class="column-group">
+                    <h3>输出列 (目标)</h3>
+                    <div id="outputColumns" class="column-options"></div>
+                </div>
+            </div>
+            <div>
+                <label for="testSplit">测试集比例:</label>
+                <input type="number" id="testSplit" min="0" max="0.5" step="0.05" value="0.2">
+            </div>
+        </div>
+        
+        <div class="section" id="modelConfig" style="display: none;">
+            <h2>3. 模型配置</h2>
+            <div>
+                <label for="hiddenLayers">隐藏层神经元数量 (用逗号分隔，如 "64,32"):</label>
+                <input type="text" id="hiddenLayers" value="64,32">
+            </div>
+            <div>
+                <label for="epochs">训练轮数:</label>
+                <input type="number" id="epochs" min="1" value="50">
+            </div>
+            <div>
+                <label for="batchSize">批量大小:</label>
+                <input type="number" id="batchSize" min="1" value="32">
+            </div>
+            <div>
+                <label for="learningRate">学习率:</label>
+                <input type="number" id="learningRate" min="0.0001" max="1" step="0.0001" value="0.001">
+            </div>
+            <button id="trainBtn" disabled>开始训练</button>
+        </div>
+        
+        <div class="section" id="trainingSection" style="display: none;">
+            <h2>4. 训练过程</h2>
+            <div class="progress-container">
+                <progress id="trainingProgress" value="0" max="100"></progress>
+                <div id="trainingStatus" class="status">准备训练...</div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="lossChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="accuracyChart"></canvas>
+            </div>
+            
+            <div id="testResults" style="display: none;">
+                <h3>测试结果</h3>
+                <div id="testMetrics"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局变量
+        let csvData = null;
+        let columnHeaders = [];
+        let model = null;
+        let lossChart = null;
+        let accuracyChart = null;
+        let isClassification = false;
+        
+        // DOM元素
+        const csvFileInput = document.getElementById('csvFile');
+        const fileInfoDiv = document.getElementById('fileInfo');
+        const dataPreviewDiv = document.getElementById('dataPreview');
+        const previewTable = document.getElementById('previewTable');
+        const columnSelectionDiv = document.getElementById('columnSelection');
+        const inputColumnsDiv = document.getElementById('inputColumns');
+        const outputColumnsDiv = document.getElementById('outputColumns');
+        const modelConfigDiv = document.getElementById('modelConfig');
+        const trainBtn = document.getElementById('trainBtn');
+        const trainingSectionDiv = document.getElementById('trainingSection');
+        const trainingProgress = document.getElementById('trainingProgress');
+        const trainingStatus = document.getElementById('trainingStatus');
+        const testResultsDiv = document.getElementById('testResults');
+        const testMetricsDiv = document.getElementById('testMetrics');
+        
+        // 文件上传处理
+        csvFileInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            fileInfoDiv.textContent = `已上传文件: ${file.name} (${(file.size / 1024).toFixed(2)} KB)`;
+            
+            // 解析CSV文件
+            Papa.parse(file, {
+                header: true,
+                complete: (results) => {
+                    csvData = results.data;
+                    columnHeaders = results.meta.fields;
+                    
+                    // 显示数据预览
+                    showDataPreview();
+                    
+                    // 显示列选择器
+                    showColumnSelector();
+                    
+                    // 显示模型配置
+                    modelConfigDiv.style.display = 'block';
+                },
+                error: (error) => {
+                    fileInfoDiv.textContent = `解析CSV文件时出错: ${error.message}`;
+                }
+            });
+        });
+        
+        // 显示数据预览
+        function showDataPreview() {
+            dataPreviewDiv.style.display = 'block';
+            
+            // 清空表格
+            previewTable.innerHTML = '';
+            
+            // 创建表头
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            
+            columnHeaders.forEach(header => {
+                const th = document.createElement('th');
+                th.textContent = header;
+                headerRow.appendChild(th);
+            });
+            
+            thead.appendChild(headerRow);
+            previewTable.appendChild(thead);
+            
+            // 创建表格内容 (只显示前10行)
+            const tbody = document.createElement('tbody');
+            const rowsToShow = Math.min(10, csvData.length);
+            
+            for (let i = 0; i < rowsToShow; i++) {
+                const row = document.createElement('tr');
+                
+                columnHeaders.forEach(header => {
+                    const td = document.createElement('td');
+                    td.textContent = csvData[i][header] || '';
+                    row.appendChild(td);
+                });
+                
+                tbody.appendChild(row);
+            }
+            
+            previewTable.appendChild(tbody);
+        }
+        
+        // 显示列选择器
+        function showColumnSelector() {
+            columnSelectionDiv.style.display = 'block';
+            inputColumnsDiv.innerHTML = '';
+            outputColumnsDiv.innerHTML = '';
+            
+            columnHeaders.forEach(header => {
+                // 创建输入列选项
+                const inputOption = document.createElement('div');
+                inputOption.className = 'column-option';
+                
+                const inputCheckbox = document.createElement('input');
+                inputCheckbox.type = 'checkbox';
+                inputCheckbox.id = `input_${header}`;
+                inputCheckbox.value = header;
+                
+                const inputLabel = document.createElement('label');
+                inputLabel.htmlFor = `input_${header}`;
+                inputLabel.textContent = header;
+                
+                inputOption.appendChild(inputCheckbox);
+                inputOption.appendChild(inputLabel);
+                inputColumnsDiv.appendChild(inputOption);
+                
+                // 创建输出列选项
+                const outputOption = document.createElement('div');
+                outputOption.className = 'column-option';
+                
+                const outputRadio = document.createElement('input');
+                outputRadio.type = 'radio';
+                outputRadio.name = 'outputColumn';
+                outputRadio.id = `output_${header}`;
+                outputRadio.value = header;
+                
+                const outputLabel = document.createElement('label');
+                outputLabel.htmlFor = `output_${header}`;
+                outputLabel.textContent = header;
+                
+                outputOption.appendChild(outputRadio);
+                outputOption.appendChild(outputLabel);
+                outputColumnsDiv.appendChild(outputOption);
+                
+                // 当输入复选框状态改变时更新训练按钮状态
+                inputCheckbox.addEventListener('change', updateTrainButtonState);
+                
+                // 当输出单选按钮状态改变时更新训练按钮状态
+                outputRadio.addEventListener('change', updateTrainButtonState);
+            });
+            
+            // 更新训练按钮状态
+            updateTrainButtonState();
+        }
+        
+        // 更新训练按钮状态
+        function updateTrainButtonState() {
+            const selectedInputs = Array.from(document.querySelectorAll('#inputColumns input[type="checkbox"]:checked'));
+            const selectedOutput = document.querySelector('#outputColumns input[type="radio"]:checked');
+            
+            trainBtn.disabled = !(selectedInputs.length > 0 && selectedOutput);
+        }
+        
+        // 训练按钮点击事件
+        trainBtn.addEventListener('click', async () => {
+            // 获取选择的输入列
+            const inputColumns = Array.from(
+                document.querySelectorAll('#inputColumns input[type="checkbox"]:checked')
+            ).map(checkbox => checkbox.value);
+            
+            // 获取选择的输出列
+            const outputColumn = document.querySelector('#outputColumns input[type="radio"]:checked').value;
+            
+            // 获取模型配置
+            const hiddenLayers = document.getElementById('hiddenLayers').value
+                .split(',')
+                .map(layer => parseInt(layer.trim()))
+                .filter(layer => !isNaN(layer));
+            
+            const epochs = parseInt(document.getElementById('epochs').value);
+            const batchSize = parseInt(document.getElementById('batchSize').value);
+            const learningRate = parseFloat(document.getElementById('learningRate').value);
+            const testSplit = parseFloat(document.getElementById('testSplit').value);
+            
+            // 准备训练
+            trainingSectionDiv.style.display = 'block';
+            trainingProgress.value = 0;
+            trainingStatus.textContent = '准备数据...';
+            
+            // 准备数据
+            const {trainData, testData, inputTensorShape, outputTensorShape} = prepareData(inputColumns, [outputColumn], testSplit);
+            
+            // 确定是分类还是回归问题
+            isClassification = typeof csvData[0][outputColumn] === 'string';
+            
+            // 创建模型
+            model = createModel(inputTensorShape, outputTensorShape, hiddenLayers, learningRate, isClassification);
+            
+            // 初始化图表
+            initCharts(epochs);
+            
+            // 训练模型
+            await trainModel(model, trainData, testData, epochs, batchSize);
+            
+            // 显示测试结果
+            showTestResults(model, testData);
+        });
+        
+        // 准备数据
+        function prepareData(inputColumns, outputColumns, testSplit) {
+            // 过滤无效数据
+            const validData = csvData.filter(row => {
+                return inputColumns.every(col => row[col] !== undefined && row[col] !== '') &&
+                       outputColumns.every(col => row[col] !== undefined && row[col] !== '');
+            });
+            
+            // 打乱数据
+            tf.util.shuffle(validData);
+            
+            // 分离输入和输出
+            const inputs = validData.map(row => inputColumns.map(col => {
+                const value = row[col];
+                return isNaN(value) ? 0 : parseFloat(value);
+            }));
+            
+            // 处理输出 - 如果是分类问题，需要将字符串标签转换为数字
+            let outputs;
+            let isStringOutput = false;
+            
+            if (outputColumns.length === 1 && typeof validData[0][outputColumns[0]] === 'string') {
+                // 分类问题 - 单列字符串标签
+                const uniqueLabels = [...new Set(validData.map(row => row[outputColumns[0]]))];
+                const labelToIndex = {};
+                uniqueLabels.forEach((label, index) => labelToIndex[label] = index);
+                
+                outputs = validData.map(row => {
+                    return [labelToIndex[row[outputColumns[0]]]];
+                });
+                
+                isStringOutput = true;
+            } else {
+                // 回归问题
+                outputs = validData.map(row => outputColumns.map(col => {
+                    const value = row[col];
+                    return isNaN(value) ? 0 : parseFloat(value);
+                }));
+            }
+            
+            // 转换为张量
+            const inputTensor = tf.tensor2d(inputs);
+            const outputTensor = tf.tensor2d(outputs);
+            
+            // 归一化输入
+            const inputMax = inputTensor.max(0);
+            const inputMin = inputTensor.min(0);
+            const normalizedInputs = inputTensor.sub(inputMin).div(inputMax.sub(inputMin));
+            
+            // 如果是分类问题，输出已经是索引，不需要归一化
+            // 如果是回归问题，归一化输出
+            let normalizedOutputs;
+            if (isStringOutput) {
+                normalizedOutputs = outputTensor;
+            } else {
+                const outputMax = outputTensor.max(0);
+                const outputMin = outputTensor.min(0);
+                normalizedOutputs = outputTensor.sub(outputMin).div(outputMax.sub(outputMin));
+            }
+            
+            // 分割训练集和测试集
+            const testSize = Math.floor(validData.length * testSplit);
+            const trainSize = validData.length - testSize;
+            
+            const trainInputs = normalizedInputs.slice(0, trainSize);
+            const trainOutputs = normalizedOutputs.slice(0, trainSize);
+            
+            const testInputs = normalizedInputs.slice(trainSize);
+            const testOutputs = normalizedOutputs.slice(trainSize);
+            
+            return {
+                trainData: {inputs: trainInputs, outputs: trainOutputs},
+                testData: {inputs: testInputs, outputs: testOutputs},
+                inputTensorShape: inputColumns.length,
+                outputTensorShape: outputColumns.length
+            };
+        }
+        
+        // 创建模型
+        function createModel(inputSize, outputSize, hiddenLayers, learningRate, isClassification) {
+            const model = tf.sequential();
+            
+            // 添加输入层和隐藏层
+            model.add(tf.layers.dense({
+                units: hiddenLayers[0],
+                inputShape: [inputSize],
+                activation: 'relu'
+            }));
+            
+            for (let i = 1; i < hiddenLayers.length; i++) {
+                model.add(tf.layers.dense({
+                    units: hiddenLayers[i],
+                    activation: 'relu'
+                }));
+            }
+            
+            // 添加输出层
+            if (isClassification) {
+                model.add(tf.layers.dense({
+                    units: outputSize,
+                    activation: 'softmax'
+                }));
+                
+                model.compile({
+                    optimizer: tf.train.adam(learningRate),
+                    loss: 'sparseCategoricalCrossentropy',
+                    metrics: ['accuracy']
+                });
+            } else {
+                model.add(tf.layers.dense({
+                    units: outputSize,
+                    activation: 'linear'
+                }));
+                
+                model.compile({
+                    optimizer: tf.train.adam(learningRate),
+                    loss: 'meanSquaredError',
+                    metrics: ['mse']
+                });
+            }
+            
+            return model;
+        }
+        
+        // 初始化图表
+        function initCharts(epochs) {
+            const lossCtx = document.getElementById('lossChart').getContext('2d');
+            const accuracyCtx = document.getElementById('accuracyChart').getContext('2d');
+            
+            if (lossChart) lossChart.destroy();
+            if (accuracyChart) accuracyChart.destroy();
+            
+            lossChart = new Chart(lossCtx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: epochs}, (_, i) => i + 1),
+                    datasets: [
+                        {
+                            label: '训练损失',
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                            data: [],
+                            fill: true
+                        },
+                        {
+                            label: '验证损失',
+                            borderColor: 'rgb(255, 99, 132)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                            data: [],
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '训练和验证损失'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    }
+                }
+            });
+            
+            accuracyChart = new Chart(accuracyCtx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: epochs}, (_, i) => i + 1),
+                    datasets: [
+                        {
+                            label: isClassification ? '训练准确率' : '训练MSE',
+                            borderColor: 'rgb(54, 162, 235)',
+                            backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                            data: [],
+                            fill: true
+                        },
+                        {
+                            label: isClassification ? '验证准确率' : '验证MSE',
+                            borderColor: 'rgb(153, 102, 255)',
+                            backgroundColor: 'rgba(153, 102, 255, 0.1)',
+                            data: [],
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: isClassification ? '训练和验证准确率' : '训练和验证MSE'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: isClassification,
+                            suggestedMin: isClassification ? 0 : undefined,
+                            suggestedMax: isClassification ? 1 : undefined
+                        }
+                    }
+                }
+            });
+        }
+        
+        // 训练模型
+        async function trainModel(model, trainData, testData, epochs, batchSize) {
+            const trainLogs = [];
+            
+            await model.fit(trainData.inputs, trainData.outputs, {
+                epochs: epochs,
+                batchSize: batchSize,
+                validationData: [testData.inputs, testData.outputs],
+                callbacks: {
+                    onEpochEnd: async (epoch, logs) => {
+                        trainLogs.push(logs);
+                        
+                        // 更新进度条
+                        const progress = ((epoch + 1) / epochs) * 100;
+                        trainingProgress.value = progress;
+                        trainingStatus.textContent = `训练中... 轮次 ${epoch + 1}/${epochs}`;
+                        
+                        // 更新图表
+                        lossChart.data.datasets[0].data.push(logs.loss);
+                        lossChart.data.datasets[1].data.push(logs.val_loss);
+                        lossChart.update();
+                        
+                        if (isClassification) {
+                            accuracyChart.data.datasets[0].data.push(logs.acc);
+                            accuracyChart.data.datasets[1].data.push(logs.val_acc);
+                        } else {
+                            accuracyChart.data.datasets[0].data.push(logs.mse);
+                            accuracyChart.data.datasets[1].data.push(logs.val_mse);
+                        }
+                        accuracyChart.update();
+                    }
+                }
+            });
+            
+            trainingStatus.textContent = '训练完成!';
+        }
+        
+        // 显示测试结果
+        function showTestResults(model, testData) {
+            testResultsDiv.style.display = 'block';
+            
+            // 评估模型
+            const result = model.evaluate(testData.inputs, testData.outputs);
+            const loss = result[0].dataSync()[0];
+            const metric = result[1].dataSync()[0];
+            
+            let metricsHTML = '';
+            if (isClassification) {
+                metricsHTML = `
+                    <p>测试损失: ${loss.toFixed(4)}</p>
+                    <p>测试准确率: ${(metric * 100).toFixed(2)}%</p>
+                `;
+            } else {
+                metricsHTML = `
+                    <p>测试损失 (MSE): ${loss.toFixed(4)}</p>
+                    <p>测试MSE: ${metric.toFixed(4)}</p>
+                `;
+            }
+            
+            testMetricsDiv.innerHTML = metricsHTML;
+        }
+    </script>
+</body>
+</html>
