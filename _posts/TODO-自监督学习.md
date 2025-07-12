@@ -1,6 +1,6 @@
 ---
-title: 【推荐系统】模型优化思路
-tags: 推荐系统 深度学习 笔记
+title: 【深度学习】自监督学习
+tags: 深度学习 笔记
 published: false
 ---
 

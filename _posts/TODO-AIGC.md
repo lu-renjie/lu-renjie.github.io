@@ -1,6 +1,6 @@
 ---
-title: 生成式推荐
-tags: 大模型 推荐系统
+title: AIGC
+tags: 大模型 AIGC
 ---
 
 

@@ -2,16 +2,16 @@
 title: 【深度学习】Metric Learning
 tags: 深度学习 笔记
 published: true
-key: 2025-07-10-comment-1
+key: 2025-07-12-comment-1
 ---
 
 看到知乎上的[这篇](https://zhuanlan.zhihu.com/p/45368976)王峰大佬的文章对metric learning有了比较大的兴趣，于是整理学习了相关的内容，如有错误请指出。
 <!--more-->
 
 
-Metric Learning旨在给特定的任务学习合适的距离函数，使得该距离函数能够较好的衡量诸如图片这样的高维稀疏数据的语义相似度，以便进行最近邻检索之类的操作。在深度学习的背景中，Metric Learning很大程度上退化成了表征学习，如果能给两张图片 $I_1, I_2$ 提取足够好的特征 $f_1, f_2$，那么这两个特征之间的欧式距离就能用来衡量原来图片之间的距离，距离度量简单的变为 $$\text d(I_1, I_2)=\|f_1-f_2\|^2=\|\text{NN}(I_1)-\text{NN}(I_2)\|^2$$。只要能提取足够好的特征，Metric Learning似乎就被解决了。不过事情没有这么简单，即使我们把神经网络当成黑盒，并且把提取的特征当做线性表征，如何训练模型使得它提取的特征满足我们期望的性质，即适合计算距离，也不是容易的事情。
+Metric Learning旨在给特定的任务学习合适的距离函数，使得该距离函数能够较好的衡量诸如图片这种高维稀疏数据的语义相似度，以便进行最近邻检索之类的操作。在深度学习的背景中，Metric Learning很大程度上退化成了表征学习，如果能给两张图片 $I_1, I_2$ 提取足够好的特征 $f_1, f_2$，那么这两个特征之间的欧式距离就能用来衡量原来图片之间的距离，距离度量简单的变为 $$\text d(I_1, I_2)=\|f_1-f_2\|^2=\|\text{NN}(I_1)-\text{NN}(I_2)\|^2$$。只要能提取足够好的特征，Metric Learning似乎就被解决了。不过让模型提取好的特征本身就是困难的事情，即使我们把神经网络当成黑盒，并且把提取的特征当做线性表征，如何训练模型使得它提取的特征满足我们期望的性质，即适合计算距离，也不是容易的事情。
 
-Metric Learning的方法可以分为两类，一类是Pair-based方法，通过拉近离正样本的距离，拉远和负样本之间的距离来学习合适的表征；另一类方法则是classification-based，通过分类任务实现metric learning，通常是魔改softmax函数。无论是哪种方法，都是通过约束特征之间的距离来学习距离度量。
+Metric Learning的方法可以分为两类，一类是Pair-based方法，通过拉近离正样本的距离，拉远和负样本之间的距离来学习合适的表征；另一类方法则是classification-based，通过分类任务间接实现metric learning，通常是魔改softmax函数。无论是哪种方法，都是通过约束特征之间的距离来学习距离度量。本文先介绍这两类方法，最后介绍把它们统一的Circle Loss。
 
 ## Pair-based
 
@@ -99,42 +99,11 @@ $$
 <img src="../../../assets/images/posts/2025-07-12/softmax_gradient.svg" width="60%" />
 </div>
 
-这样就可以把softmax分类理解成训练了 $c$ 个二分类器，**每个二分类器把一个类作为正类，其余的所有类都作为负类进行判断**。这样的每个分类器都做到了正类和负类梯度的平衡，而且会根据预测的难度大小自适应的调整每个负类的权重，难度大的负类 $p_i - y_i$ 会更大，梯度更大，难度小的则梯度更小。
+这样就可以把softmax分类理解成训练了 $c$ 个二分类器，**每个二分类器把一个类作为正类，其余的所有类都作为负类进行判断**。每个分类器也都做到了正类和负类梯度的平衡，而且会根据预测的难度大小自适应的调整每个负类的权重，难度大的负类 $p_i - y_i$ 会更大，梯度更大，难度小的则梯度更小。
 
 Softmax loss除了有上述良好的梯度性质，其训练得到的权重 $W$ 也有很直观的几何含义，不考虑bias的话，第 $i$ 个类别对应的参数 $w_i$ 从原点指向这个类别比较中心的位置。因为经过训练后需要保证 $w_i^Tx$ 比较大才能正确分类。
 
 另外，从 $W$ 和 $b$ 我们也能得到分类超平面。对于第 $i$ 和第 $j$ 个类别，当 $w_ix_i+b_i=w_jx_j+b_j$ 时说明模型认为样本属于两个类别的概率相同，对于线性模型而言这意味着刚好落在决策边界上，因此 $(w_i-w_j)^Tx+b_i-b_j=0$ 对应的超平面就是这两个类别的分界面，与 $w_i-w_j$ 垂直的超平面就是决策边界。
-
-<!-- 
-#### 理解温度系数（WIP）
-
-在基于上述对softmax loss的理解基础上，再来看看给softmax加入常见的温度系数 $T$ 看看它会有什么影响。可以推导出梯度是：
-
-$$
-\begin{aligned}
-\mathcal L &= \text{softmax}(\frac{z}{T}) \\
-\frac{\partial \mathcal L}{\partial z} &= \color{red}{\frac1T}\color{black}(p^T-y^T )
-\end{aligned}
-$$
-
-这里温度系数引入了对softmax平滑的先验，$T$ 越小（小于1），logits会被放得越大，经过softmax后越接近one-hot。但是这样有什么意义？注意softmax是对one-hot近似，它永远无法接近one-hot，loss永远不会为0。即使模型分类准确率100%了，模型总是能让正确的类分数最高，由于loss不为0，它还是会让分数进一步变大，这意味着特征更加靠近类中心了，类似于CenterLoss那样间接的给类之间加了margin。而 $T$ 控制了对one-hot的近似程度，它也就控制了这个间接margin的大小。
-
-首先从优化角度理解温度系数的作用。根据[知乎文章](https://zhuanlan.zhihu.com/p/52108088)，小的温度系数会导致loss边界非常陡峭，进而导致优化过程中，特征不会更倾向于往类内聚拢，使得margin变小。
-
-除此之外，温度系数也会影响loss对**难样本**的关注程度。在[这篇论文](https://openaccess.thecvf.com/content/CVPR2021/papers/Wang_Understanding_the_Behaviour_of_Contrastive_Loss_CVPR_2021_paper.pdf)中，作者从单个负样本在所有负样本中的梯度占比进行分析：
-
-$$
-r(z_{i})
-$$
-
-随着 $T$ 减小，难样本的梯度占比指数级减小而总梯度不变，随着 $T$ 增大，简单和难负样本梯度会越来越接近。过小的 $T$ 会导致整个loss几乎只关注最难的一两个样本，当 $T\rightarrow 0$ 时，梯度为：
-
-$$
--\frac1T\max(z_{max} - z_i, 0)
-$$
-
-负类梯度被唯一的样本主导，退化成了triplet loss，而且margin为0。当 $T\rightarrow +\infty$ 时，所有负样本有相同梯度。 -->
-
 
 
 ### CenterLoss
@@ -179,9 +148,7 @@ $$
 
 $$\cos\theta_i=\frac{w_i^Tf}{\|w_i\|\|f\|}$$ 的含义是特征 $f$ 和类别中心 $w_i$ 的夹角余弦值，$m$用来控制margin，通常取4。因为 $\cos$ 函数是个递减函数，所以**乘以一个大于1的倍数会减小logit值，进而让loss变大，因此优化到和不加margin相同的loss大小特征之间的margin更大**。
 
-这个做法非常简单，实质上只修改了最后的softmax。softmax替换后可以选择交叉熵或者Focal Loss进行分类。当然实际上会比这复杂，例如夹角的范围应该在$0~\pi$之间，乘了 $m$ 会超出这个范围，所以需要一些额外的处理。但是这里为了说明核心思想就忽略这一点。另外，为了保证角度的含义，这里也去掉了bias，这样不会影响效果，也可以简化理论上的分析。
-
-
+这个做法非常简单，实质上只修改了最后的softmax。softmax替换后可以选择交叉熵或者Focal Loss进行分类。当然实际上会比这复杂，例如夹角的范围应该在$0~\pi$之间，乘了 $m$ 会超出这个范围，所以需要一些额外的处理。但是这里为了说明核心思想就忽略这一点。另外，为了保证角度的含义，这里也去掉了bias，实验表明不会影响效果，也可以简化理论上的分析。
 
 
 ### L2 Normalization
@@ -226,7 +193,7 @@ $$
 }
 $$
 
-加性的margin会更好收敛。到这里，用classification-based方法做人脸识别效果已经非常好了。
+加性的margin会更好收敛。另外由于softmax分类要求正确类别的分数最高，所以CosFace实际上在要求 $\cos(\theta_i) - m > \cos(\theta_j)$，这就和Triplet Loss非常像了，要求特征离正类中心 $w_i$ 的角度比离负类中心 $w_j$ 的余弦相似度至少大一个margin。到这里，用classification-based方法做人脸识别效果已经非常好了。
 
 #### 为什么要归一化
 
@@ -234,7 +201,9 @@ $$
 <img src="../../../assets/images/posts/2025-07-12/feature_visualization.png" width="60%" />
 </div>
 
-1. 上图是CenterLoss提供的MNIST训练集和测试集的特征可视化结果，可以看出训练后的特征呈现放射状（结合前面分析的softmax loss梯度性质很容易理解这是因为梯度喜欢正类特征变长）。这样的放射状特征本身不满足Metric Learnning的要求，但是归一化之后能显著增大不同类别之间的margin，显然更好。实验结果也表明，测试时先归一化特征，再进行最近邻检索能有提升。
+个人理解归一化有三个优点：
+
+1. 上图是CenterLoss提供的MNIST训练集和测试集的特征可视化结果，可以看出训练后的特征呈现放射状（结合前面分析的softmax loss梯度性质很容易理解这是因为梯度喜欢正类特征变长）。这种放射状特征本身不满足Metric Learnning的要求，但是归一化之后能显著增大不同类别之间的margin，显然更好。实验结果也表明，测试时先归一化特征，再进行最近邻检索能有提升。
 
 3. 归一化之后，L2距离和余弦距离等价，因为由 $$\|x\|=\|y\|=1$$ 可以得到 $$\|x - y\|^2 = 2 - 2x^Ty$$，再也不用纠结用哪个了~
 
@@ -244,15 +213,38 @@ $$
 
 1. 如果仅仅使用余弦相似度，由于$\cos\theta$的范围是$[-1, 1]$，经过softmax后难以近似one-hot，softmax loss会一直很高，带来优化问题。根据前面的分析，softmax loss的梯度会均匀分配给正类和负类，大的softmax loss会导致梯度一直很大，即使前面的神经网络已经提取了很好的特征，这种大的loss也会破坏模型的学习。
 
-2. 前面提到softmax的温度系数可以控制loss对难样本的关注程度以及类之间的margin，由于 $s = \frac1T$，$s$ 是温度系数的倒数，$s$ 越大，loss就越关注难样本，但同时也会导致类之间的margin变小。所以一个合适的 $s$ 既能在一定程度上关注难样本，也保证一定的margin大小。
+2. $s$ 越大，loss就越关注难样本，同时也会导致类之间的margin变小（使softmax没有那么soft了，具体可以看[王峰的知乎](https://zhuanlan.zhihu.com/p/52108088)）。所以一个合适的 $s$ 既能在一定程度上关注难样本，也保证一定的margin大小。
 
 综上，引入 $s$ 在特征归一化的情况下能解决优化问题，同时也使得loss在更加关注难样本的同时容许了类之间的margin，使得classification-based方法能以一种简单的方式解决Triplet Loss做起来比较麻烦的难三元组构造。
 
-#### 梯度性质（WIP）
+#### 梯度性质
 
-这部分内容来源于NormFace。
+这一部分探讨一下对特征归一化的梯度性质。直接说结论：对 $f$ 进行L2归一化 $\frac{f}{\|f\|}$ 后再计算loss $\mathcal L$，对应的梯度满足：
 
-### ArcFace（WIP）
+$$
+\left(\frac{\partial\mathcal L}{\partial f}\right)^Tf=0
+$$
+
+对 $f$ 的梯度和 $f$ 正交，这意味着梯度位于 $f$ 所在超球体的切面上，这样的好处是使用梯度下降不会带来对 $f$ 长度的剧变，从而实现稳定的优化。证明也简单，只需要分析 $$y = \frac{x}{\|x\|}$$ 的雅克比矩阵：
+
+$$
+\begin{aligned}
+\frac{\partial y_i}{\partial x_j} = \begin{cases}
+\frac{1}{\|x\|} - \frac{x_i^2}{\|x\|^3}, &\ i=j\\
+                - \frac{x_ix_j}{\|x\|^3}, &\ i\ne j\\
+\end{cases}
+\end{aligned}
+$$
+
+把这个式子写成矩阵形式就得到了雅克比矩阵：
+
+$$
+\frac{\partial y}{\partial x} = \frac1{\|x\|}(I - \frac{xx^T}{\|x\|^2})
+$$
+
+这个雅克比矩阵乘以 $x$ 得到的是0向量。对应到特征归一化上，根据链式法则可知最后得到的梯度一定是0，于是得证。
+
+### ArcFace
 
 [ArcFace(2019)](https://arxiv.org/abs/1801.07698)是classification-based方法的集大成者（或者说是margin softmax这类方法），效果非常好。做法是固定了 $s=64$，并把margin从$cos$外面移动到里面：
 
@@ -268,18 +260,20 @@ $$
 }
 $$
 
-并且对比了不同加margin方式的区别：
+这个loss要求的是 $\cos(\theta_i+m) > \cos(\theta_j)$，在 $\theta_i+m < \frac\pi 2$ 且 $\theta_j < \frac\pi 2$ 的时候等价于 $\theta_i + m < \theta_j$，相较于CosFace的 $m$ 是和余弦值相加的，ArcFace的 $m$ 是直接加在角度上的，含义更直观，论文里把 $m$ 设为0.5，大约是28°。
+
+ArcFace也对比了不同加margin方式的几何意义：
 
 <div align=center>
 <img src="../../../assets/images/posts/2025-07-12/arcface.png" width="70%" />
 </div>
 
-无论是哪种加margin的方式，都是让logit变小，使得相同margin下的loss变大，迫使模型学到更大的margin。ArcFace的angular margin对应着弧距(arc margin)，所以叫ArcFace。
+无论是哪种加margin的方式，都是让logit变小，使得相同margin下的loss变大，迫使模型学到更大的margin。ArcFace的margin含义直观，且从实验来看效果最好。
+
+值得注意的是这里只介绍了这些loss的核心思想，离实现还有距离，具体还是要参考代码实现。例如向量夹角取值范围应该是 $[0, \pi]$，如果 $\theta_i$ 本身就很大导致 $\theta+m > \pi$， 此时 $cos$ 反而会递增，不一定能让logit变小。ArcFace的实现会在 $\theta_i$ 太大的时候改用CosFace的margin，变成 $\cos\theta_i - m\sin m$，后面的 $m\sin m$ 是随 $m$ 单调递增且取值范围合适的margin。
 
 
 ## 统一视角
-
-<!-- https://www.zhihu.com/question/440729199/answer/1704992808 -->
 
 ### Circle Loss
 
@@ -332,7 +326,7 @@ $$
 
 其中 $s_n^j$ 为anchor $f$ 和第 $j$ 个负样本的相似度，$s_p$ 为 $f$ 和第 $i$ 个正样本的相似度，$K$ 表示正例数量，$L$ 表示负例数量，$m$ 是margin，$\gamma$ 是 scale factor，对应原来的 $s$。这个loss很有意思，做了多个改进：
 
-1. 把余弦相似度 $cos\theta$ 推广为相似度 $s_n$，于是 $s_n$ 可以由不同的相似度方法替代。
+1. 把余弦相似度 $\cos\theta$ 推广为相似度 $s_n$，于是 $s_n$ 可以由不同的相似度方法替代。
 
 2. 以一个**合适的方式**将单个正样本扩展到了多个，使之适用于多标签分类。
 
@@ -358,12 +352,17 @@ $$
 
 综上就可以理解为什么说这个loss统一了前面提到的pair-based和classification-based的损失函数。无论是哪种loss，本质上都在最大化 $s_p$和最小化 $s_n$，只是正负样本选取的对象和方式不同。
 
+<div align=center>
+<img src="../../../assets/images/posts/2025-07-12/circleloss_gradient.svg" width="40%" />
+</div>
+
+
 关于第二点，如何处理多标签分类一直是个麻烦的问题，Circle Loss给出了一个优雅的解决方案，正类和负类天然是均衡的。具体而言，Circle Loss对 $\max$、$\min$ 以及 $\max(x, 0)$ 函数都进行了平滑化：
 
 $$
 \begin{aligned}
 \min_i\{s_p\} &\approx \ln\sum_i e^{ - \gamma s_p^i}\\
-\max_j\{s_n\} &\approx \ln\sum_{j=1}^L e^{\gamma(s_n^j + m)}\\
+\max_j\{s_n\} + m &\approx \ln\sum_{j=1}^L e^{\gamma(s_n^j + m)}\\
 \max(x, 0) &\approx \ln(1+e^x)
 \end{aligned}
 $$
@@ -374,11 +373,8 @@ $$
 \mathcal L_{circle} \approx \text{ReLU}\left(  \max_j\{s_n^j\} - \min_i\{s_p^j\}+m  \right)
 $$
 
-这意味着Circle Loss会自动找难样本进行对比学习的优化，并给正类和负类分配大小相等、方向相反的梯度，且梯度绝对值都是1。而且因为这些近似的替换是这个式子的smooth版本，会类似于softmax**把总和为1的负类梯度分配给每个负类一样，把总和为1的正类梯度分配给每个正类，也把总和为1的负类梯度分配每个负类**，实现巧妙的类别均衡，如下图所示。
+这意味着Circle Loss会自动找难样本进行对比学习的优化，并给正类和负类分配大小相等、方向相反的梯度，且梯度绝对值都是1。而且因为这些近似的替换是这个式子的smooth版本，会类似于softmax**把总和为1的负类梯度分配给每个负类一样，把总和为1的正类梯度分配给每个正类，也把总和为1的负类梯度分配每个负类**，实现巧妙的类别均衡，如上图所示。
 
-<div align=center>
-<img src="../../../assets/images/posts/2025-07-12/circleloss_gradient.svg" width="40%" />
-</div>
 
 ### 再看Softmax
 
@@ -399,11 +395,59 @@ $$
 
 结合前面Circle loss是公式 $(23)$ 的smooth版本的理解，softmax就是 $$ \text{ReLU}(\max_j\{s_n^j\} - s_p) $$ 的smooth版本。得益于LSE函数的梯度是softmax函数，使用LSE替换 $\max$ 函数能保持梯度总和为1，真是一个非常好的性质。
 
-<!-- ### 为什么叫Circle（WIP）
+### 为什么叫Circle Loss
 
-实际上原论文中的Circle loss的motivation是给 $s_n$ 和 $s_p$ 加权。
+这个解释起来比较复杂，实际上原论文中的Circle loss和上面介绍的有些差异，还会给每个类加权，这里先忽略margin：
 
-## 总结（WIP）
+$$
+\mathcal L = 
+\ln\left(
+1
++
+\sum_{i=1}^Le^{-\gamma \color{blue}{\alpha_p^i}\color{black} s_p^i}
+\sum_{j=1}^Ke^{ \gamma \color{blue}{\alpha_n^j}\color{black} s_n^j}
+\right)
+$$
 
-还有[L2 Softmax](https://arxiv.org/pdf/1703.09507)看看。
+其中 $\alpha$ 是加权的权重，Circle Loss把权重设为：
+
+$$
+\begin{aligned}
+\alpha_p^i = \text{ReLU}(O_p - s_p^i)\\
+\alpha_n^j = \text{ReLU}(s_n^j - O_n)
+\end{aligned}
+$$
+
+其中 $O_p=1+m,O_n=1-m$ 由超参数 $m$ 控制，分别表示我们期望 $s_p$ 和 $s_n$ 尽可能达到的相似度，ReLU是为了保证权重非负。如果当前相似度和预期的差异较大，那么对应类的loss权重也会更大，类似于Focal Loss。但是引入每个类别的权重会破坏掉softmax的正负类梯度平衡性质，这样是否会带来负面影响就不太清楚了，对类别不均衡或者不同类别难度差异大的数据或许也不是坏事。
+
+在引入了加权系数之后，就不太好设置margin了，因为 $\alpha$ 会导致阈值不断变化。为此Circle Loss没有设置margin，而是给正类和负类各引入了一个阈值 $\Delta_p$ 和 $\Delta_n$：
+
+$$
+\mathcal L = 
+\ln\left(
+1
++
+\sum_{i=1}^Le^{-\gamma \alpha_p^i (s_p^i - \color{blue}{\Delta_p}\color{black})}
+\sum_{j=1}^Ke^{ \gamma \alpha_n^j (s_n^j - \color{blue}{\Delta_n}\color{black})}
+\right)
+$$
+
+这样不仅希望 $s_p$ 增大，也希望 $s_p > \Delta_p$，同理希望 $s_n < \Delta_n$。论文把这两个超参数设为：$\Delta_p=1-m,\Delta_n=m$，通过一个超参数 $m$ 同时调节两个阈值以及前面的 $\alpha$，减少调参复杂度。引入阈值后，**相较于约束 $s_p$ 比 $s_n$ 大一个margin这样的相对大小约束，这个loss还约束了 $s_p$ 和 $s_n$ 的绝对大小**，是一个更明确的优化目标，这也是论文所claim的一点。通过约束绝对大小也能实现margin的作用，例如在这样的 $\Delta$ 设置下，margin其实是 $1-2m$，论文中 $m$ 取0.25。
+
+最后放出作者给出的不同loss的对比图（正类负类数量都是1，于是自变量是 $s_n$ 和 $s_p$）：
+
+<div align=center>
+<img src="../../../assets/images/posts/2025-07-12/circle_loss.png" width="100%" />
+</div>
+
+Triplet Loss和AM-Softmax都只约束了margin，导致loss曲面是平的部分太多，这样优化就没有那么容易。而Circle Loss引入了加权系数和阈值之后，平的部分就只剩loss很小的区域了，这部分区域恰恰是我们希望是loss收敛的地方，它的形状是圆形的，因为指数项里面 $-\alpha_p(s_p-\Delta_p)=(s_p-O_p)(s_p-\Delta_p)$，配方可知圆心是 $(\frac{O_n+\Delta_n}{2},\frac{O_p + \Delta_p}{2})=(0, 1)$，代表我们希望 $s_n$ 优化到0，$s_p$ 优化到1。
+
+到这里就回答了为什么Circle Loss名字里有Circle，因为loss的收敛区域是圆形的。
+
+
+## 总结
+
+本文整理了Metric Learning中一些有代表性的loss。两大类loss中，Pair-based loss中，DeepID2是二元组的对比，而Triplet Loss是三元组的对比；Classification-based loss中，Circle loss显式缩小类内距离来间接增大margin，L-Softmax在角度上加margin，角度margin更契合softmax。后续的SphereFace、NormFace、CosFace（AM-Softmax）、ArcFace逐渐完善了在angular margin的方法，引入了L2归一化以及Scale Factor。最后Circle Loss也提供了一个统一的视角看待这两大类方法，并且还能扩展到多标签分类。
+
+<!-- 还有[L2 Softmax](https://arxiv.org/pdf/1703.09507)看看。
 {:.info} -->
