@@ -342,7 +342,7 @@ $$
 \end{aligned}
 $$
 
-这里需要用到LogSumExp（LSE）函数的性质，即LSE函数是max函数的平滑版本，极限情况下二者相等：
+这里需要用到[LogSumExp(LSE)](https://nhigham.com/2021/01/05/what-is-the-log-sum-exp-function/)函数的性质，即LSE函数是max函数的平滑版本，极限情况下二者相等：
 
 $$
 \max\{x_1, \cdots, x_n\}

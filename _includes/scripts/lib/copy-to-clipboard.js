@@ -5,7 +5,7 @@
 		// 	snippet.firstChild.insertAdjacentHTML('beforebegin', '<button class="btn" data-clipboard-snippet><i class="far fa-copy"></i></button>');
 		// }
 		snippet.parentNode.insertAdjacentHTML('beforebegin', '<button class="btn" data-clipboard-snippet><i class="far fa-copy"></i></button>');
-		snippet.style.overflow = 'scroll';
+		// snippet.style.overflow = 'scroll';
 
 		target = snippet.parentNode.parentNode;
 		var wrapperHTML = '<div class="copyable" markdown="1">' + target.outerHTML + '</div>';
