@@ -9,15 +9,20 @@ published: false
 
 推荐系统模型很直接，实质上还是在学特征之间比较基础的联系，比如线性回归的加权，LR的baseline本身结果就很好，不需要学习CV或NLP里面那些很high-level的抽象表征。
 
-### 推荐系统的闭环
+### Feedback Loop
 
-模型影响了用户看到的内容，用户对这些内容的行为会以数据流的形式反馈到模型，进一步影响自己看到的内容，于是形成了一个反馈回路。
+- Feedback loop问题。推荐系统决定用户看到的内容，用户的行为会以训练数据或序列特征的形式影响推荐系统，形成一个闭环。这样会导致马太效应：item本身由于内容差异以及冷启动问题会在热度上形成一个长尾分布，而由于推荐系统feedback loop的特征，被推荐得越多的item用户看到的也越多，导致长尾加剧。热门内容越来越热门，冷启动问题需要专门的设计进行解决。
+
+Feedback Loop and Bias Amplification in Recommender Systems
 
 ### 用户分层
 
 不同用户的兴趣差异非常大，用户使用APP的目的也各不相同，对用户分层的理解有助于推荐系统的宏观决策。
 
-用户可以按年龄划分，按使用APP时长划分（高价值用户），按职业划分，按性别划分。在跨业务的时候可以迁移其它业务的高价值用户。APP的留存、拉新会有不同的思路。
+用户可以按年龄划分，按使用APP时长划分（高价值用户），按职业划分，按性别划分。在跨业务的时候可以迁移其它业务的高价值用户。
+
+APP的用户可以分为深度用户和新回用户（新用户、回流用户、未注册用户），深度用户推荐算法不太会影响他们的留存，更多看平均使用时长，而新用户体验不好可能就不会使用这个APP了，看重DAU。
+
 
 ### 内容分层
 
@@ -34,7 +39,23 @@ published: false
 
 #### Sample Selection Bias
 
-模型用于训练的样本都是send出去的样本，本身就是排序比较靠前的样本。但实际推理的时候又不是这样，因此存在bias。
+对于CVR模型，模型用于训练的样本都是clic的样本，但实际推理的时候会对所有send的样本进行CVR预测，包括click和非click的样本，因此存在bias。
+
+CTR模型不存在SSB问题，召粗模型存在SSB问题。
+
+### 线上线下不一致
+
+原因可能有很多，比如模型serving有些问题，特征线上线下不一致。
+
+离线数据训练有提升，但是线上不一定有提升，原因在于：
+- 除此之外，在线和离线的实现会有很多差异。
+- SSB问题。粗排送过来的数据和训练用的曝光过的数据不同
+- 线上存在大量新样本，与离线不一致
+- 特征差异：
+    - match特征存在穿越问题
+
+[https://zhuanlan.zhihu.com/p/42521586](https://zhuanlan.zhihu.com/p/42521586)
+[https://blog.csdn.net/legendavid/article/details/80653433](https://blog.csdn.net/legendavid/article/details/80653433)
 
 #### Position bias
 
@@ -43,24 +64,6 @@ published: false
 [https://zhuanlan.zhihu.com/p/439499892](https://zhuanlan.zhihu.com/p/439499892)
 
 简单的解决办法是加特征，把位置也作为特征输入进去。
-
-### 线上线下不一致
-
-原因可能有很多，比如模型serving有些问题，特征线上线下不一致。
-
-离线数据训练有提升，但是线上不一定有提升，原因在于：
-- SSB问题。粗排送过来的数据和训练用的曝光过的数据不同
-- 线上受冷启动影响
-
-[https://zhuanlan.zhihu.com/p/42521586](https://zhuanlan.zhihu.com/p/42521586)
-[https://blog.csdn.net/legendavid/article/details/80653433](https://blog.csdn.net/legendavid/article/details/80653433)
-
-
-#### AUC纠偏
-
-AUC指标的问题，数据分布的变化。
-
-- Debias AUC
 
 
 ## 精排模型优化
