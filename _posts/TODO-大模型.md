@@ -2,3 +2,48 @@
 title: 【大模型】入门学习
 tags: 深度学习 大模型 笔记
 ---
+
+<!-- 
+* 20250814: 创建文件
+-->
+
+<!--more-->
+
+## 大模型对齐
+
+### 偏好对齐
+
+在标注的偏好数据上训练。
+
+#### Reward模型
+
+Reward模型使用BPR Loss进行训练。
+
+#### PPO
+
+PPO是强化学习的经典算法，实现简单，效果好，但是trick非常多，有[博客](https://iclr-blog-track.github.io/2022/03/25/ppo-implementation-details/)专门讲PPO实现的37个trick。
+
+### DPO
+
+DPO直接在偏好数据上进行训练，把RL和Reward模型训练合并成一个环节。
+
+
+## 推理模型
+
+PPO前面介绍了，这里介绍一些针对大模型场景改进的强化学习算法。
+
+### DeepSeek R1
+
+1. 使用强化学习训练DeepSeek-R1-Zero做数学题，训练推理能力。
+2. 使用DeepSeek-R1-Zero生成的推理样本给DeepSeek-R1训练作为冷启动
+3. 使用推理数据+偏好数据用SFT训练DeepSeek-R1
+4. 使用推理reward和偏好reward训练DeepSeek-R1
+
+#### GRPO
+
+GRPO在DeepSeek-Math中提出，是一个比PPO更简单的算法，可以理解为针对大模型优化的REINFORCE算法。
+
+### GSPO
+
+按QWen团队的说法，用GRPO在MOE架构的模型上根本不work（说GRPO是DeepSeek团队的烟雾弹），原因在于MOE的稀疏性，上一步训练的几个expert在下一次迭代是可能完全没用到，给RL训练带来困难，为此QWen团队提出了GSPO。
+

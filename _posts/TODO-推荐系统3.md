@@ -4,6 +4,11 @@ tags: 推荐系统 深度学习 笔记
 published: false
 ---
 
+<!-- 
+updates:
+* 202508:一边面试，一边学习，花了很久写的
+-->
+
 
 ## 理解推荐系统
 
@@ -41,7 +46,28 @@ APP的用户可以分为深度用户和新回用户（新用户、回流用户�
 
 对于CVR模型，模型用于训练的样本都是clic的样本，但实际推理的时候会对所有send的样本进行CVR预测，包括click和非click的样本，因此存在bias。
 
-CTR模型不存在SSB问题，召粗模型存在SSB问题。
+CTR模型不存在SSB问题，召粗模型和CVR模型存在SSB问题。
+
+#### Position bias
+
+指由于推送内容在app中的位置导致的bias，比如双栏推荐，用户比较喜欢看第一个，用户没有点击的item并不意味着他不感兴趣。
+
+[https://zhuanlan.zhihu.com/p/439499892](https://zhuanlan.zhihu.com/p/439499892)
+
+简单的解决办法是加特征，把位置也作为特征输入进去。
+
+PAL。
+
+#### Popularity Bias
+
+避免热门样本占据太多训练机会。
+
+
+#### 其它bias
+
+* extreme bias：只有用户非常喜欢或不喜欢的时候才会进行点赞或收藏等行为
+* conformity bias：大多数人的评价会影响用户判断
+
 
 ### 线上线下不一致
 
@@ -53,17 +79,10 @@ CTR模型不存在SSB问题，召粗模型存在SSB问题。
 - 线上存在大量新样本，与离线不一致
 - 特征差异：
     - match特征存在穿越问题
+    - example age的穿越问题
 
 [https://zhuanlan.zhihu.com/p/42521586](https://zhuanlan.zhihu.com/p/42521586)
 [https://blog.csdn.net/legendavid/article/details/80653433](https://blog.csdn.net/legendavid/article/details/80653433)
-
-#### Position bias
-
-指由于推送内容在app中的位置导致的bias，比如双栏推荐，用户比较喜欢看第一个，用户没有点击的item并不意味着他不感兴趣。
-
-[https://zhuanlan.zhihu.com/p/439499892](https://zhuanlan.zhihu.com/p/439499892)
-
-简单的解决办法是加特征，把位置也作为特征输入进去。
 
 
 ## 精排模型优化
@@ -74,20 +93,21 @@ CTR模型不存在SSB问题，召粗模型存在SSB问题。
 * 用户分层优化
 * 内容分层优化
 
-### 模型
+### 内存占用优化
 
-多看论文吧。。。各种纠偏。
-
-
-## 资源占用优化
+* 特征淘汰
+* 人为筛选特征
+* embedding大小调优
 
 ### 推理时延优化
 
 半精度推理、减小模型参数量、low-rank的线性层。
 
-### 内存占用优化
 
-* 特征淘汰
-* embedding大小调优
+## 模型高估低估优化
+
+https://zhuanlan.zhihu.com/p/16484895233
+
+广告系统高估低估。
 
 

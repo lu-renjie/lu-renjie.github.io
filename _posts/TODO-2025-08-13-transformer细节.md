@@ -3,6 +3,11 @@ title: 【深度学习】transformer实现细节
 tags: 深度学习 笔记 脚本
 ---
 
+<!--
+* 20250812: 创建文件，写了非大模型的部分
+* 202508: 完善 MOE 和 MLA 的部分
+-->
+
 <!--more-->
 
 ## 位置编码
@@ -227,8 +232,8 @@ RMSNorm是LayerNorm的替代归一化方式，相较于LayerNorm不会减去均�
 
 #### MLA
 
-MLA是DeepSeek V3提出来的减少KVCache的方法，MLA神奇的地方是它不仅压缩了KVCache的大小，而且效果比原始的Multi-Head Attention还要好。
+MLA是DeepSeek V2提出来的减少KVCache的方法，MLA神奇的地方是它不仅压缩了KVCache的大小，而且效果比原始的Multi-Head Attention还要好。
 
 ### Multi-Token Prediction
 
-一次预测多个token。
+通过一次预测多个token而不是1个来加速生成。有许多论文都做MTP，这里介绍比较有名的DeepSeek V3的做法。
