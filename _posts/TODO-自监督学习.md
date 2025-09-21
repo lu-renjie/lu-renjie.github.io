@@ -37,7 +37,7 @@ MoCov1,MoCov2
 BEIT
 MAE
 
-#### DINOv1,DINOv2
+#### DINOv1,DINOv2, DINOv3
 DINOv1把MoCo的方法迁移到ViT，发现ViT的Attention很有可解释性，可以直接做分割。
 
 DINOv2希望能够得到一个不需要微调的预训练模型，能够为各种视觉任务，无论是图片级别，还是像素级别都提供足够好的特征，也就是训练得到一个基础模型。

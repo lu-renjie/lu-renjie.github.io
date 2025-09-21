@@ -269,3 +269,56 @@ layout: base
 {%- include markdown-enhancements.html -%}
 {%- include pageview.html -%}
 {%- include copy-to-clipboard.html -%}
+
+<style>
+  .pretty-table-wrapper {
+    margin: 0 auto;
+    display: table; /* 自适应内容宽度 */
+    width: auto; /* 移除固定宽度 */
+  }
+  .pretty-table {
+    width: 100%; /* 占满 wrapper */
+    /* box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); */
+    border-radius: 4px;
+    overflow: hidden;
+    table-layout: fixed;
+  }
+  .pretty-table th, .pretty-table td {
+    padding: 12px 15px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+    vertical-align: middle;
+    word-wrap: break-word;
+    overflow: hidden;
+  }
+  .pretty-table th {
+    background-color: #f5f5f5;
+    color: dimgray;
+    font-weight: bold;
+  }
+  /* .pretty-table tr:nth-child(even) {
+    background-color: #f9f9f9;  // 奇数行按灰色显示
+  } */
+  .pretty-table tr:hover {
+    background-color: #f1f1f1;  // 鼠标悬浮的行按灰色显示
+  }
+  .pretty-table td .MathJax_Display {
+    margin: 0 !important;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .pretty-table td .mjx-chtml {
+    display: inline-block !important;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  @media (max-width: 600px) {
+    .pretty-table-wrapper {
+      width: 95%;
+    }
+    .pretty-table th, .pretty-table td {
+      padding: 8px;
+      font-size: 12px;
+    }
+  }
+</style>
