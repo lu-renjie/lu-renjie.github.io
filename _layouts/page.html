@@ -321,4 +321,44 @@ layout: base
       font-size: 12px;
     }
   }
+
+
+  .theorem {
+    background-color: #ffffff;
+    border: 2px solid #a5a5a59e;
+    padding: 20px 25px 10px 25px;
+    margin: 5px 0;
+    border-radius: 8px 8px 8px 8px;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
 </style>
+
+<style>
+  .theorem::before {
+    content: "📐 定理";
+    position: absolute;
+    top: -12px;
+    left: 20px;
+    background: white;
+    padding: 0 10px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #000000;  /* 文字 */
+    border: 2px solid #a5a5a59e;  /* 边框 */
+    border-radius: 4px;
+  }
+  
+  .theorem:hover {
+    border-color: #f44336;
+    box-shadow: 0 4px 15px rgba(244, 67, 54, 0.2);
+    transition: all 0.3s ease;
+  }
+  
+  .theorem:hover::before {
+    color: #f44336;  /* 标签文字也变深 */
+    border-color: #f44336;  /* 保持标签边框 */
+    transition: all 0.3s ease;
+  }
+</style>
+
