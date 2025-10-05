@@ -1,5 +1,5 @@
 ---
-title: 【强化学习】AlphaZero、稀疏奖励、SAC
+title: 【强化学习】SAC、Distributional RL
 tags: 强化学习 深度学习 笔记
 ---
 
@@ -84,3 +84,10 @@ PPO比较好调参，SAC和TD3对参数很敏感，不好调参。
 ### DSAC
 
 ### DSACv2（DSAC-T）
+
+
+
+## 单步决策问题（utility theory）
+
+
+## safe exploration

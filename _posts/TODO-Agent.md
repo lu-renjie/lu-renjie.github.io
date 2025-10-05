@@ -21,6 +21,32 @@ Agent就是让大模型使用工具，使用工具的方式是让大模型输出
 
 ### RAG
 
+
+- RAG
+  - 检索增强
+
+- workflow
+
+  决策，自动化。
+
+  - 典型的workflow应用
+      - 自动化报销审批
+      - 翻译
+  - 歧义消解
+  - 意图识别
+
+- Agent
+  - 指令、记忆、工具
+      - 指令
+      - 记忆：长期记忆、短期记忆
+      - 工具：互联网搜索、RAG、python解释器、其它API
+  - 典型应用
+      - 知识库问答
+      - 数据分析
+      - Deep Research
+
+
+
 - Naive RAG：引入检索
     - 构建知识库，类似于搜索引擎，可以引入embedding查询实现模糊检索
     - 检索出来的文本以一定的格式（模板）拼接在一起，输入到大模型
@@ -48,3 +74,13 @@ Agent就是让大模型使用工具，使用工具的方式是让大模型输出
 - workflow，以节点编辑器的形式自定义agent
 
 这里RAG作为一个系统，提取embedding等操作同时通过远程API的形式实现的，langChain提供了文本的分块，访问一些常见的比如OpenAI的embedding API，还有对向量数据库如faiss的访问。
+
+## DeepResearch
+
+
+    - Agent应用：CUI、智能编排
+        - [https://www.swebench.com/](https://www.swebench.com/)
+        - [https://www.coze.com/](https://www.coze.com/)
+        - 结合parser转文本交给大模型做
+        - prompt→function call→MCP
+        - Deep Search
